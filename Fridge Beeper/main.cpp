@@ -10,7 +10,6 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
-#include <time.h>
 
 #include "millis.h"
 
@@ -25,9 +24,9 @@
 int const level = 120;
 
 volatile bool refrig_open = false;
-volatile time_t refrig_open_time = 0;
+volatile millis_t refrig_open_time = 0;
 volatile bool freezer_open = false;
-volatile time_t freezer_open_time = 0;
+volatile millis_t freezer_open_time = 0;
 
 
 void beep_off()
@@ -109,8 +108,7 @@ ISR(PCINT0_vect)
 	
 	if( refrig_state ) {
 		refrig_open = true;
-		refrig_open_time = time(NULL);
-			beep_once();
+		refrig_open_time = millis();
 	}
 	else
 	{
@@ -120,7 +118,7 @@ ISR(PCINT0_vect)
 
 	if( freezer_state ) {
 		freezer_open= true;
-		freezer_open_time = time(NULL);
+		freezer_open_time = millis();
 	}
 	else
 	{
@@ -132,9 +130,8 @@ ISR(PCINT0_vect)
 int main(void)
 {
 	init();
-	
-	
-    /* Replace with your application code */
+	init_millis();
+
     while (1) 
     {
 		  led_on();
@@ -142,11 +139,11 @@ int main(void)
 		  led_off();
 		  _delay_ms(500);
 		  
-		  if (refrig_open && time(NULL) - refrig_open_time > TIMEOUT)
+		  if (refrig_open && millis() - refrig_open_time > TIMEOUT)
 		  {
 			  beep_once();
 		  }
-		  else if (freezer_open && time(NULL) - freezer_open_time > TIMEOUT)
+		  else if (freezer_open && millis() - freezer_open_time > TIMEOUT)
 		  {
 			  beep_once();
 		  }
