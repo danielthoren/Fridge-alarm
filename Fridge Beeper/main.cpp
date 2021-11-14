@@ -6,40 +6,23 @@
  */ 
 
 #define F_CPU  1000000
+#define TIMEOUT_1            10000 // Open time until first beep      [ms] 10 sek
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
 
 #include "millis.h"
+#include "buzzer.h"
+#include "door.h"
 
 #define REFRIG_PIN  PB3 // Same as PCINT3
 #define FREEZER_PIN PB4 // Same as PCINT4
 #define BEEP_PIN    PB1 // Same as PCINT1
 #define LED_PIN     PB2 // Same as PCINT0
 
-#define TIMEOUT            1000 // Open time until beep [ms] 100 sek
-#define BEEP_TIME_PERIOD   500     // Time period for beeping
-
-int const level = 120;
-
-volatile bool refrig_open = false;
-volatile millis_t refrig_open_time = 0;
-volatile bool freezer_open = false;
-volatile millis_t freezer_open_time = 0;
-
-
-void beep_off()
-{
-	OCR1A = 0x00;
-	DDRB = 0 << BEEP_PIN;
-}
-
-void beep_on()
-{
-	DDRB = 1 << BEEP_PIN;
-	OCR1A = 150;
-}
+Door fridge{};
+Door freezer{};
 
 void led_on()
 {
@@ -54,7 +37,7 @@ void led_off()
 
 void init()
 {
-	cli();
+cli();
 
  // Set output pin PB1 (6) as ouptut and PB3 (2), PB4 (3) as input
  DDRB = 0;
@@ -86,18 +69,7 @@ void init()
  sei();
 }
 
-void beep_once()
-{
-	beep_on();
-	led_on();
-	
-	_delay_ms(BEEP_TIME_PERIOD);
-	
-	beep_off();
-	led_off();
-	
-	_delay_ms(BEEP_TIME_PERIOD);
-}
+
 
 // This is the interrupt handler called when there is any change on the INT_PIN
 // ISR is defined in the headers - the ATtiny45 only has one handler
@@ -106,48 +78,20 @@ ISR(PCINT0_vect)
 	bool refrig_state = PINB & (1 << REFRIG_PIN);
 	bool freezer_state = PINB & (1 << FREEZER_PIN);
 	
-	if( refrig_state ) {
-		refrig_open = true;
-		refrig_open_time = millis();
-	}
-	else
-	{
-		refrig_open = false;
-		refrig_open_time = 0;
-	}
-
-	if( freezer_state ) {
-		freezer_open= true;
-		freezer_open_time = millis();
-	}
-	else
-	{
-		freezer_open = false;
-		freezer_open_time = 0;
-	}
+	fridge.set_state(refrig_state);
+	freezer.set_state(freezer_state);
 }
 
 int main(void)
 {
 	init();
 	init_millis();
+	init_buzzer(BEEP_PIN);
 
     while (1) 
-    {
-		  led_on();
-		  _delay_ms(500);
-		  led_off();
-		  _delay_ms(500);
-		  
-		  if (refrig_open && millis() - refrig_open_time > TIMEOUT)
-		  {
-			  beep_once();
-		  }
-		  else if (freezer_open && millis() - freezer_open_time > TIMEOUT)
-		  {
-			  beep_once();
-		  }
-		
+    {  
+		  fridge.update();
+		  freezer.update();
     }
 }
 
