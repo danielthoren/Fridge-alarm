@@ -8,6 +8,7 @@
 
 // Calculate the value needed for
 // the CTC match value in OCR1A.
+#define PRESCALER (8)
 #define CTC_MATCH_OVERFLOW ((F_CPU / 1000) / 8)
 
 volatile millis_t timer1_millis;
@@ -21,6 +22,7 @@ ISR (TIMER0_COMPA_vect)
 void init_millis()
 {
   // Set prescaler to 8 (clk/8)
+  TCCR0B = 0;
   TCCR0B |= (0 << CS02) |(1 << CS01) | (0 << CS00);
 
   // Set output compare such that ISR is triggered every ms
