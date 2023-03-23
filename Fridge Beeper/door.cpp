@@ -1,70 +1,100 @@
 ﻿#include "door.h"
+#include "AtTiny45_HAL.h"
 #include "buzzer.h"
 #include "millis.h"
+#include "timer.h"
 #include "common_defines.h"
 
 #include <util/delay.h>
 
-Door::Door(millis_t timeout_1,
-           millis_t timeout_2,
-           millis_t timeout_3,
-           millis_t timeout_continuous)
-  : is_open{false},
-    open_time{0},
-    first_beep{false},
-    second_beep{false},
-    third_beep{false},
-    timeout_1{timeout_1},
-    timeout_2{timeout_2},
-    timeout_3{timeout_3},
-    timeout_continuous{timeout_continuous}
+Door::Door(volatile uint8_t* doorPort,
+           uint8_t doorPin,
+           millis_t debounceTime,
+           millis_t timeout1,
+           millis_t timeout2,
+           millis_t timeout3,
+           millis_t timeoutContinuous):
+    m_isOpen{false},
+    m_openTime{0},
+    m_firstBeep{false},
+    m_secondBeep{false},
+    m_thirdBeep{false},
+    m_doorPort{doorPort},
+    m_doorPin{doorPin},
+    m_debounceTime{debounceTime},
+    m_timeout1{timeout1},
+    m_timeout2{timeout2},
+    m_timeout3{timeout3},
+    m_timeoutContinuous{timeoutContinuous}
 {
 }
-
 
 void Door::update()
 {
-  if (is_open && !first_beep && has_expired(open_time + timeout_1))
+  if (m_isOpen && !m_firstBeep && has_expired(m_openTime + m_timeout1))
   {
     beep_once(100);
-    first_beep = true;
+    m_firstBeep = true;
   }
-  else if (is_open && !second_beep && has_expired(open_time + timeout_2))
+  else if (m_isOpen && !m_secondBeep && has_expired(m_openTime + m_timeout2))
   {
     beep_once(100);
     beep_once(100);
-    second_beep = true;
+    m_secondBeep = true;
   }
-  else if (is_open && !third_beep && has_expired(open_time + timeout_3))
+  else if (m_isOpen && !m_thirdBeep && has_expired(m_openTime + m_timeout3))
   {
     beep_once(100);
     beep_once(100);
     beep_once(100);
-    third_beep = true;
-    continuous_timer = millis() + timeout_continuous;
+    m_thirdBeep = true;
+    m_continuousTimer = millis() + m_timeoutContinuous;
   }
-  else if (third_beep && has_expired(continuous_timer))
+  else if (m_thirdBeep && has_expired(m_continuousTimer))
   {
     beep_once(100);
     beep_once(100);
     beep_once(100);
-    continuous_timer = millis() + timeout_continuous;
+    m_continuousTimer = millis() + m_timeoutContinuous;
   }
 }
 
-void Door::set_state(bool door_open)
+void Door::DoorStateChanged()
 {
-  this->is_open = door_open;
+  m_isOpenAtChange = ReadPin(m_doorPort, m_doorPin);
 
-  if (is_open)
+  // TODO: Lambdas work, but std::function does not exist. Find workaround
+  auto lam = [this] () {
+               if (this->m_isOpenAtChange)
+               {
+                 this->m_isOpenAtChange = false;
+               }
+             };
+
+  // Timer::RegisterRelativeTimer(m_debounceTime, &this->DebounceHelper);
+}
+
+void Door::DebounceHelper()
+{
+  if (m_isOpenAtChange == ReadPin(m_doorPort, m_doorPin))
   {
-    open_time = millis();
+    SetState(m_isOpenAtChange);
+  }
+}
+
+void Door::SetState(bool door_open)
+{
+  this->m_isOpen = door_open;
+
+  if (m_isOpen)
+  {
+    m_openTime = millis();
   }
   else
   {
-    first_beep = false;
-    second_beep = false;
-    third_beep = false;
-    open_time = 0;
+    m_firstBeep = false;
+    m_secondBeep = false;
+    m_thirdBeep = false;
+    m_openTime = 0;
   }
 }

@@ -1,5 +1,12 @@
 ﻿#include "timer.h"
 
+namespace Timer
+{
+
+/*******************************************************************************
+ ***  Type declarations                                                       ***
+ *******************************************************************************/
+
 struct Entry
 {
   Entry()
@@ -21,11 +28,23 @@ struct Entry
   void (*functionPtr)();
 };
 
+/*******************************************************************************
+ ***  Local variable declarations                                             ***
+ *******************************************************************************/
+
 static Entry timers[maxConsecutiveTimers];
+
+/*******************************************************************************
+ ***  Local function declarations                                             ***
+ *******************************************************************************/
 
 static TimerHandle InsertTimer(Entry const& entry);
 
-void InitTimer()
+/*******************************************************************************
+ ***  Public function defenitions                                             ***
+ *******************************************************************************/
+
+void Init()
 {
   for (int i{0}; i < maxConsecutiveTimers; i++)
   {
@@ -46,18 +65,33 @@ void Update()
   }
 }
 
-
 TimerHandle RegisterRelativeTimer(millis_t const delay, void (*functionPtr)())
+{
+  return RegisterAbsoluteTimer(millis() + delay, functionPtr);
+}
+
+TimerHandle RegisterAbsoluteTimer(millis_t const timePoint, void (*functionPtr)())
 {
   Entry entry{
     true,
-    millis() + delay,
+    timePoint,
     functionPtr
   };
 
   return InsertTimer(entry);
 }
 
+void RemoveTimer(TimerHandle handle)
+{
+  if (0 < handle || handle < maxConsecutiveTimers)
+  {
+    timers[handle] = Entry{};
+  }
+}
+
+/*******************************************************************************
+ ***  Local function defenitions                                              ***
+ *******************************************************************************/
 
 static TimerHandle InsertTimer(Entry const& entry)
 {
@@ -71,4 +105,6 @@ static TimerHandle InsertTimer(Entry const& entry)
     }
   }
   return -1;
+}
+
 }

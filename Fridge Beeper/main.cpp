@@ -14,6 +14,7 @@
 #include "millis.h"
 #include "buzzer.h"
 #include "door.h"
+#include "timer.h"
 
 #define REFRIG_PIN  PB3 // Same as PCINT3 (Pin 1)
 #define FREEZER_PIN PB4 // Same as PCINT4 (Pin 3)
@@ -22,8 +23,8 @@
 
 static constexpr int DEBOUNCE_TIME_MS{5};
 
-Door fridge{};
-Door freezer{};
+Door fridge{&PORTB, REFRIG_PIN};
+Door freezer{&PORTB, FREEZER_PIN};
 
 void init()
 {
@@ -56,6 +57,11 @@ void init()
   // Disable pullup for all pins
   MCUCR = 1 << PUD;
 
+  // Init SW modules
+  Timer::Init();
+  init_millis();
+  init_buzzer(BEEP_PIN);
+
   sei();
 }
 
@@ -63,23 +69,23 @@ void init()
 // ISR is defined in the headers - the ATtiny45 only has one handler
 ISR(PCINT0_vect)
 {
-  bool initial_refrig_state = PINB & (1 << REFRIG_PIN);
-  bool initial_freezer_state = PINB & (1 << FREEZER_PIN);
+  // bool initial_refrig_state = PINB & (1 << REFRIG_PIN);
+  // bool initial_freezer_state = PINB & (1 << FREEZER_PIN);
 
   // _delay_ms(DEBOUNCE_TIME_MS);
 
-  bool refrig_state = PINB & (1 << REFRIG_PIN);
-  bool freezer_state = PINB & (1 << FREEZER_PIN);
+  // bool refrig_state = PINB & (1 << REFRIG_PIN);
+  // bool freezer_state = PINB & (1 << FREEZER_PIN);
 
-  if (refrig_state == initial_refrig_state)
-  {
-    fridge.set_state(refrig_state);
-  }
+  // if (refrig_state == initial_refrig_state)
+  // {
+  //   fridge.set_state(refrig_state);
+  // }
 
-  if (freezer_state == initial_freezer_state)
-  {
-    freezer.set_state(freezer_state);
-  }
+  // if (freezer_state == initial_freezer_state)
+  // {
+  //   freezer.set_state(freezer_state);
+  // }
 }
 
 void set_led_on()
@@ -117,13 +123,12 @@ void toggle_led(millis_t timeout)
 int main(void)
 {
   init();
-  init_millis();
-  init_buzzer(BEEP_PIN);
 
   while (1)
   {
     fridge.update();
     freezer.update();
+    Timer::Update();
 
     toggle_led(1000);
   }

@@ -154,6 +154,12 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="AtTiny45_HAL.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="AtTiny45_HAL.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="buzzer.cpp">
       <SubType>compile</SubType>
     </Compile>
