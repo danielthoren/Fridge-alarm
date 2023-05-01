@@ -21,6 +21,7 @@ class Door
 public:
   Door(volatile uint8_t* doorPort,
        uint8_t doorPin,
+       bool openPimState = 1,
        millis_t debounceTime = Constants::kDebounceTime,
        millis_t timeout1 = Constants::kTimeOut1,
        millis_t timeout2 = Constants::kTimeOut2,
@@ -30,22 +31,12 @@ public:
   /**
    * @brief Updates this module, must be called periodically
    */
-  void update();
-
- /**
-  * @brief May be called when the state (open/closed) changes
-  * @details Will save the state, then use a timer to debounce the input
-  */
-  void DoorStateChanged();
+  void Update();
 
 private:
 
-  void DebounceHelper();
+  bool IsOpen();
 
-  void SetState(bool door_open);
-
-  volatile bool     m_isOpenAtChange;
-  volatile bool     m_isOpen;
   volatile millis_t m_openTime;
   millis_t m_continuousTimer;
 

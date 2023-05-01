@@ -29,66 +29,40 @@ Door::Door(volatile uint8_t* doorPort,
 {
 }
 
-void Door::update()
+void Door::Update()
 {
-  if (m_isOpen && !m_firstBeep && has_expired(m_openTime + m_timeout1))
+  if (IsOpen())
   {
-    beep_once(100);
-    m_firstBeep = true;
-  }
-  else if (m_isOpen && !m_secondBeep && has_expired(m_openTime + m_timeout2))
-  {
-    beep_once(100);
-    beep_once(100);
-    m_secondBeep = true;
-  }
-  else if (m_isOpen && !m_thirdBeep && has_expired(m_openTime + m_timeout3))
-  {
-    beep_once(100);
-    beep_once(100);
-    beep_once(100);
-    m_thirdBeep = true;
-    m_continuousTimer = millis() + m_timeoutContinuous;
-  }
-  else if (m_thirdBeep && has_expired(m_continuousTimer))
-  {
-    beep_once(100);
-    beep_once(100);
-    beep_once(100);
-    m_continuousTimer = millis() + m_timeoutContinuous;
-  }
-}
-
-void Door::DoorStateChanged()
-{
-  m_isOpenAtChange = ReadPin(m_doorPort, m_doorPin);
-
-  // TODO: Lambdas work, but std::function does not exist. Find workaround
-  auto lam = [this] () {
-               if (this->m_isOpenAtChange)
-               {
-                 this->m_isOpenAtChange = false;
-               }
-             };
-
-  // Timer::RegisterRelativeTimer(m_debounceTime, &this->DebounceHelper);
-}
-
-void Door::DebounceHelper()
-{
-  if (m_isOpenAtChange == ReadPin(m_doorPort, m_doorPin))
-  {
-    SetState(m_isOpenAtChange);
-  }
-}
-
-void Door::SetState(bool door_open)
-{
-  this->m_isOpen = door_open;
-
-  if (m_isOpen)
-  {
-    m_openTime = millis();
+    if (m_openTime == 0)
+    {
+      m_openTime = millis();
+    }
+    else if (!m_firstBeep && has_expired(m_openTime + m_timeout1))
+    {
+      beep_once(100);
+      m_firstBeep = true;
+    }
+    else if (!m_secondBeep && has_expired(m_openTime + m_timeout2))
+    {
+      beep_once(100);
+      beep_once(100);
+      m_secondBeep = true;
+    }
+    else if (!m_thirdBeep && has_expired(m_openTime + m_timeout3))
+    {
+      beep_once(100);
+      beep_once(100);
+      beep_once(100);
+      m_thirdBeep = true;
+      m_continuousTimer = millis() + m_timeoutContinuous;
+    }
+    else if (m_thirdBeep && has_expired(m_continuousTimer))
+    {
+      beep_once(100);
+      beep_once(100);
+      beep_once(100);
+      m_continuousTimer = millis() + m_timeoutContinuous;
+    }
   }
   else
   {
@@ -97,4 +71,9 @@ void Door::SetState(bool door_open)
     m_thirdBeep = false;
     m_openTime = 0;
   }
+}
+
+bool Door::IsOpen()
+{
+  return ReadPin(m_doorPort, m_doorPin) == openPimState;
 }
